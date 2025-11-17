@@ -14,7 +14,8 @@ export interface FirecrawlScrapeResult {
 
 export async function scrapeProduct(productUrl: string): Promise<FirecrawlScrapeResult> {
   try {
-    logger.info(`Scraping product from URL: ${productUrl}`);
+    logger.info(`[Firecrawl] Scraping product from URL: ${productUrl}`);
+    logger.info(`[Firecrawl] Using API key: ${env.FIRECRAWL_API_KEY.substring(0, 10)}...`);
 
     const response = await httpClient.post(
       'https://api.firecrawl.dev/v2/scrape',
@@ -29,24 +30,40 @@ export async function scrapeProduct(productUrl: string): Promise<FirecrawlScrape
           Authorization: `Bearer ${env.FIRECRAWL_API_KEY}`,
           'Content-Type': 'application/json',
         },
+        timeout: 30000, // 30 second timeout
       }
     );
 
+    logger.info(`[Firecrawl] Response status: ${response.status}`);
+    logger.info(`[Firecrawl] Response data:`, JSON.stringify(response.data, null, 2));
+
     const data = response.data;
 
-    // Extract images
-    const images: string[] = [];
-    if (data.images && Array.isArray(data.images)) {
-      images.push(...data.images);
+    // Check if Firecrawl returned success
+    if (!data.success) {
+      logger.warn(`[Firecrawl] API returned success=false for ${productUrl}`);
+      logger.warn(`[Firecrawl] Full response:`, JSON.stringify(data, null, 2));
     }
 
-    // Extract metadata
+    // Extract images - try multiple possible locations
+    const images: string[] = [];
+
+    // V2 API might return images in different formats
+    if (data.data?.images && Array.isArray(data.data.images)) {
+      images.push(...data.data.images);
+    } else if (data.images && Array.isArray(data.images)) {
+      images.push(...data.images);
+    } else if (data.data?.metadata?.ogImage) {
+      images.push(data.data.metadata.ogImage);
+    }
+
+    // Extract metadata - try multiple possible locations
     const metadata = {
-      title: data.metadata?.title || data.title || undefined,
-      description: data.metadata?.description || data.description || undefined,
+      title: data.data?.metadata?.title || data.data?.title || data.metadata?.title || data.title || undefined,
+      description: data.data?.metadata?.description || data.data?.description || data.metadata?.description || data.description || undefined,
     };
 
-    logger.info(`Successfully scraped product. Found ${images.length} images`);
+    logger.info(`[Firecrawl] Successfully scraped. Images: ${images.length}, Title: ${metadata.title ? 'Yes' : 'No'}, Description: ${metadata.description ? 'Yes' : 'No'}`);
 
     return {
       success: true,
@@ -54,7 +71,15 @@ export async function scrapeProduct(productUrl: string): Promise<FirecrawlScrape
       metadata,
     };
   } catch (error: any) {
-    logger.error('Firecrawl scraping error:', error.message);
+    logger.error('[Firecrawl] Scraping error:', error.message);
+
+    if (error.response) {
+      logger.error('[Firecrawl] Response status:', error.response.status);
+      logger.error('[Firecrawl] Response data:', JSON.stringify(error.response.data, null, 2));
+    } else if (error.request) {
+      logger.error('[Firecrawl] No response received from Firecrawl API');
+    }
+
     throw new AppError(
       500,
       'SCRAPING_ERROR',
