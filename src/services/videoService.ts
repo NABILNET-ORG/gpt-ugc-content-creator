@@ -8,7 +8,8 @@ const supabaseKey = env.SUPABASE_SERVICE_ROLE_KEY;
 const supabaseBucket = process.env.SUPABASE_VIDEO_BUCKET || 'ugc-videos';
 
 const falApiKey = env.FAL_API_KEY;
-const falModel = process.env.FAL_VEO_MODEL || 'fal-ai/google-veo-3.1';
+// Correct model name for Veo 3 Fast Image-to-Video
+const falModel = process.env.FAL_VEO_MODEL || 'fal-ai/veo3/fast/image-to-video';
 
 if (!supabaseUrl || !supabaseKey) {
   throw new Error('Missing Supabase env vars');
@@ -57,15 +58,13 @@ async function callFalVeo({
     logger.info(`[FAL Veo] Duration: ${durationSeconds || 30} seconds`);
 
     const body = {
-      input: {
-        prompt: script,
-        image_url: avatarImageUrl,
-        aspect_ratio: aspectRatio || '9:16',
-        duration: durationSeconds || 30,
-      },
+      prompt: script,
+      image_url: avatarImageUrl,
+      video_length: durationSeconds || 5, // Veo3 uses video_length, not duration
     };
 
     logger.info(`[FAL Veo] Calling FAL API: ${falModel}`);
+    logger.info(`[FAL Veo] Request body:`, JSON.stringify(body, null, 2));
 
     const res = await fetch(`https://fal.run/${falModel}`, {
       method: 'POST',
