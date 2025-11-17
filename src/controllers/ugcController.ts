@@ -14,6 +14,7 @@ import { createProject, getProject, updateProjectAssets, updateProjectStatus } f
 import { getPaymentBySessionId } from '../services/paymentService';
 import { getVideoByProjectAndSession, createVideo, decrementUserCredits, getUserCredits, findUserByExternalId } from '../db/queries';
 import { AvatarSettings } from '../types';
+import { supabase } from '../config/supabase';
 
 // POST /api/ugc/scrape-product
 export async function scrapeProductHandler(req: Request, res: Response): Promise<void> {
@@ -175,8 +176,20 @@ export async function generateVideoHandler(req: Request, res: Response): Promise
 
     // Check for idempotency - existing video for this project + session
     const existingVideo = await getVideoByProjectAndSession(projectId, stripeSessionId);
-    if (existingVideo) {
-      logger.info('Returning existing video (idempotent request)', { projectId, stripeSessionId });
+
+    // Helper function to detect legacy stub URLs
+    const isLegacyStubUrl = (url: string | null | undefined): boolean => {
+      if (!url) return false;
+      return url.includes('storage.example.com') || url.includes('example.com');
+    };
+
+    // Only return existing video if it's REAL (not a legacy stub)
+    if (existingVideo && !isLegacyStubUrl(existingVideo.video_url)) {
+      logger.info('[Generate Video] Returning existing real video (idempotent request)', {
+        projectId,
+        stripeSessionId,
+        videoUrl: existingVideo.video_url
+      });
       const creditsRemaining = await getUserCredits(payment.user_id);
       sendSuccess(res, {
         projectId,
@@ -186,6 +199,16 @@ export async function generateVideoHandler(req: Request, res: Response): Promise
         creditsRemaining,
       });
       return;
+    }
+
+    // If existing video is legacy/fake, log it and regenerate
+    if (existingVideo && isLegacyStubUrl(existingVideo.video_url)) {
+      logger.warn('[Generate Video] Found legacy stub video, will regenerate with real Veo pipeline', {
+        projectId,
+        stripeSessionId,
+        legacyUrl: existingVideo.video_url
+      });
+      // Continue to regeneration below...
     }
 
     // Get project
@@ -218,17 +241,43 @@ export async function generateVideoHandler(req: Request, res: Response): Promise
 
     logger.info(`[Generate Video] Video generated and uploaded: ${videoResult.publicUrl}`);
 
-    // Create video record
-    await createVideo({
-      projectId,
-      videoUrl: videoResult.publicUrl,
-      thumbnailUrl: undefined,
-      durationSeconds: 30,
-      stripeSessionId,
-    });
+    // If there was a legacy video, we update it; otherwise create new
+    if (existingVideo) {
+      logger.info('[Generate Video] Updating legacy video record with real URL', {
+        videoId: existingVideo.id,
+        oldUrl: existingVideo.video_url,
+        newUrl: videoResult.publicUrl
+      });
 
-    // Decrement user credits
-    await decrementUserCredits(payment.user_id, 1);
+      // Update existing video record with real URL
+      const { error } = await supabase
+        .from('videos')
+        .update({
+          video_url: videoResult.publicUrl,
+          thumbnail_url: null,
+          duration_seconds: 30,
+        })
+        .eq('id', existingVideo.id);
+
+      if (error) {
+        logger.error('[Generate Video] Failed to update video record', error);
+        throw new AppError(500, 'DATABASE_ERROR', 'Failed to update video record');
+      }
+    } else {
+      // Create new video record
+      await createVideo({
+        projectId,
+        videoUrl: videoResult.publicUrl,
+        thumbnailUrl: undefined,
+        durationSeconds: 30,
+        stripeSessionId,
+      });
+    }
+
+    // Decrement user credits (only if this is a new generation, not an update)
+    if (!existingVideo) {
+      await decrementUserCredits(payment.user_id, 1);
+    }
 
     // Update project status
     await updateProjectStatus(projectId, 'video_ready');
