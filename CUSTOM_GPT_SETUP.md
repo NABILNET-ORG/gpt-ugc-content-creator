@@ -365,7 +365,7 @@ curl -X POST https://gpt-ugc-content-creator.vercel.app/api/ugc/scrape-product \
 **Step 1: Scrape Product**
 ```bash
 curl -X POST https://gpt-ugc-content-creator.vercel.app/api/ugc/scrape-product \
-  -H "x-gpt-backend-secret: 7C5dJXv0rPpPp9sV_3qkL2wzA1mZBabA" \
+  -H "x-gpt-backend-secret: <your-secret>" \
   -H "Content-Type: application/json" \
   -d '{
     "productUrl": "https://www.amazon.com/dp/B0EXAMPLE"
@@ -375,7 +375,7 @@ curl -X POST https://gpt-ugc-content-creator.vercel.app/api/ugc/scrape-product \
 **Step 2: Prepare Assets**
 ```bash
 curl -X POST https://gpt-ugc-content-creator.vercel.app/api/ugc/prepare-assets \
-  -H "x-gpt-backend-secret: 7C5dJXv0rPpPp9sV_3qkL2wzA1mZBabA" \
+  -H "x-gpt-backend-secret: <your-secret>" \
   -H "Content-Type: application/json" \
   -d '{
     "userExternalId": "chatgpt:nabil",
@@ -396,7 +396,7 @@ curl -X POST https://gpt-ugc-content-creator.vercel.app/api/ugc/prepare-assets \
 **Step 3: Create Checkout**
 ```bash
 curl -X POST https://gpt-ugc-content-creator.vercel.app/api/billing/create-checkout \
-  -H "x-gpt-backend-secret: 7C5dJXv0rPpPp9sV_3qkL2wzA1mZBabA" \
+  -H "x-gpt-backend-secret: <your-secret>" \
   -H "Content-Type: application/json" \
   -d '{
     "userExternalId": "chatgpt:nabil",
@@ -408,7 +408,7 @@ curl -X POST https://gpt-ugc-content-creator.vercel.app/api/billing/create-check
 **Step 4: Check Status** (after payment)
 ```bash
 curl -X POST https://gpt-ugc-content-creator.vercel.app/api/billing/check-status \
-  -H "x-gpt-backend-secret: 7C5dJXv0rPpPp9sV_3qkL2wzA1mZBabA" \
+  -H "x-gpt-backend-secret: <your-secret>" \
   -H "Content-Type: application/json" \
   -d '{
     "stripeSessionId": "SESSION_ID_FROM_STEP_3"
@@ -418,7 +418,7 @@ curl -X POST https://gpt-ugc-content-creator.vercel.app/api/billing/check-status
 **Step 5: Generate Video** (once payment is confirmed)
 ```bash
 curl -X POST https://gpt-ugc-content-creator.vercel.app/api/ugc/generate-video \
-  -H "x-gpt-backend-secret: 7C5dJXv0rPpPp9sV_3qkL2wzA1mZBabA" \
+  -H "x-gpt-backend-secret: <your-secret>" \
   -H "Content-Type: application/json" \
   -d '{
     "projectId": "PROJECT_ID_FROM_STEP_2",
@@ -430,7 +430,7 @@ curl -X POST https://gpt-ugc-content-creator.vercel.app/api/ugc/generate-video \
 
 ### "Unauthorized" Error
 - Verify you're using the correct header: `x-gpt-backend-secret`
-- Check the secret matches: `7C5dJXv0rPpPp9sV_3qkL2wzA1mZBabA`
+- Check the secret value matches your `GPT_BACKEND_SECRET` from `.env`
 
 ### CORS Error
 - Ensure `ALLOWED_ORIGINS` includes `https://chatgpt.com`
