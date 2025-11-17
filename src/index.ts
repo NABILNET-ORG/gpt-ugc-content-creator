@@ -8,7 +8,6 @@ import { AppError } from './utils/error';
 import { sendError } from './utils/responses';
 
 // Import routes
-import healthRouter from './routes/health';
 import privacyRouter from './routes/privacy';
 import ugcRouter from './routes/ugc';
 import billingRouter from './routes/billing';
