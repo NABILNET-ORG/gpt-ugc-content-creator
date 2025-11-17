@@ -8,3 +8,6 @@ dist/
 .idea/
 *.swp
 *.swo
+
+.vercel
+.vercel
