@@ -82,6 +82,7 @@ curl -X POST https://gpt-ugc-content-creator.vercel.app/api/ugc/scrape-product \
 
 ### API Endpoints (All Working)
 - ✅ `GET /health` - Health check
+- ✅ `GET /privacy` - Privacy policy page
 - ✅ `POST /api/ugc/scrape-product` - Product scraping
 - ✅ `POST /api/ugc/prepare-assets` - Avatar + script generation
 - ✅ `POST /api/billing/create-checkout` - Stripe checkout
