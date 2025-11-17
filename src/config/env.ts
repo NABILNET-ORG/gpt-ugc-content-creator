@@ -8,7 +8,8 @@ interface EnvConfig {
   NODE_ENV: 'development' | 'production';
   STRIPE_SECRET_KEY: string;
   STRIPE_WEBHOOK_SECRET: string;
-  FIRECRAWL_API_KEY: string;
+  SCRAPERAPI_KEY: string;
+  GEMINI_API_KEY: string;
   FAL_API_KEY: string;
   SUPABASE_URL: string;
   SUPABASE_SERVICE_ROLE_KEY: string;
@@ -20,7 +21,8 @@ function validateEnv(): EnvConfig {
   const required = [
     'STRIPE_SECRET_KEY',
     'STRIPE_WEBHOOK_SECRET',
-    'FIRECRAWL_API_KEY',
+    'SCRAPERAPI_KEY',
+    'GEMINI_API_KEY',
     'FAL_API_KEY',
     'SUPABASE_URL',
     'SUPABASE_SERVICE_ROLE_KEY',
@@ -43,7 +45,8 @@ function validateEnv(): EnvConfig {
     NODE_ENV: nodeEnv as 'development' | 'production',
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY!,
     STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET!,
-    FIRECRAWL_API_KEY: process.env.FIRECRAWL_API_KEY!,
+    SCRAPERAPI_KEY: process.env.SCRAPERAPI_KEY!,
+    GEMINI_API_KEY: process.env.GEMINI_API_KEY!,
     FAL_API_KEY: process.env.FAL_API_KEY!,
     SUPABASE_URL: process.env.SUPABASE_URL!,
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY!,

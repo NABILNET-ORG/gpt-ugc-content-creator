@@ -4,7 +4,8 @@ import { validateRequired, validateUrl } from '../utils/validation';
 import { AppError } from '../utils/error';
 import { logger } from '../config/logger';
 
-import { scrapeProduct } from '../services/firecrawlService';
+import { fetchPageWithScraperApi } from '../services/scraperApiService';
+import { analyzeHtmlWithGemini } from '../services/geminiScraperService';
 import { generateAvatar } from '../services/avatarService';
 import { generateScript } from '../services/scriptService';
 import { generateVideoFromAvatarAndScript } from '../services/videoService';
@@ -19,23 +20,74 @@ export async function scrapeProductHandler(req: Request, res: Response): Promise
   try {
     const { productUrl } = req.body;
 
-    validateRequired(productUrl, 'productUrl');
+    // Validate input
+    if (!productUrl || typeof productUrl !== 'string' || !productUrl.trim()) {
+      sendError(res, 400, 'INVALID_REQUEST', "Missing or invalid 'productUrl'.");
+      return;
+    }
+
     validateUrl(productUrl, 'productUrl');
 
-    const result = await scrapeProduct(productUrl);
+    logger.info(`[ScrapeProduct] Processing request for: ${productUrl}`);
 
-    sendSuccess(res, {
-      productUrl,
-      images: result.images,
-      metadata: result.metadata,
-    });
-  } catch (error: any) {
-    logger.error('Error in scrapeProduct:', error);
-    if (error instanceof AppError) {
-      sendError(res, error.statusCode, error.errorCode, error.message, error.details);
-    } else {
-      sendError(res, 500, 'INTERNAL_ERROR', 'An error occurred while scraping the product');
+    // Step 1: Fetch HTML with ScraperAPI
+    const scraperResult = await fetchPageWithScraperApi(productUrl);
+
+    // Check if HTML is empty or too short
+    if (!scraperResult.html || scraperResult.html.length < 100) {
+      logger.warn(`[ScrapeProduct] HTML is empty or too short (${scraperResult.html.length} chars)`);
+      res.status(200).json({
+        ok: true,
+        product: {
+          url: productUrl,
+          title: null,
+          description: null,
+          images: [],
+        },
+        warning: 'EMPTY_HTML_FROM_SCRAPERAPI',
+      });
+      return;
     }
+
+    // Step 2: Analyze HTML with Gemini
+    const geminiProduct = await analyzeHtmlWithGemini(productUrl, scraperResult.html);
+
+    // Build response
+    const responseBody: any = {
+      ok: true,
+      product: {
+        url: geminiProduct.url,
+        title: geminiProduct.title,
+        description: geminiProduct.description,
+        images: geminiProduct.images,
+      },
+    };
+
+    // Add warning if no images found
+    if (geminiProduct.images.length === 0) {
+      responseBody.warning = 'NO_IMAGES_FOUND';
+    }
+
+    logger.info(`[ScrapeProduct] Successfully scraped product. Images: ${geminiProduct.images.length}, Title: ${!!geminiProduct.title}`);
+
+    res.status(200).json(responseBody);
+  } catch (error: any) {
+    logger.error('[ScrapeProduct] Error:', error.message);
+
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({
+        ok: false,
+        error: error.errorCode,
+        details: error.message,
+      });
+      return;
+    }
+
+    res.status(500).json({
+      ok: false,
+      error: 'SCRAPE_PRODUCT_FAILED',
+      details: 'An unexpected error occurred while scraping the product.',
+    });
   }
 }
 
