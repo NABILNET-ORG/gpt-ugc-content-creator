@@ -27,7 +27,7 @@ app.use('/webhook', express.raw({ type: 'application/json' }), webhookRouter);
 app.use(express.json());
 
 // Request logging middleware
-app.use((req, res, next) => {
+app.use((req: Request, res: Response, next: NextFunction) => {
   logger.info(`${req.method} ${req.path}`);
   next();
 });
@@ -52,7 +52,7 @@ app.use('/api/billing', authMiddleware, billingRouter);
 // ==================== ERROR HANDLING ====================
 
 // 404 handler
-app.use((req, res) => {
+app.use((req: Request, res: Response) => {
   sendError(res, 404, 'NOT_FOUND', 'Route not found');
 });
 
