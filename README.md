@@ -129,6 +129,11 @@ Health check endpoint (no authentication required).
 }
 ```
 
+#### `GET /privacy`
+Privacy policy page (no authentication required).
+
+**Response:** HTML page with complete privacy policy.
+
 ### Protected Endpoints
 
 All `/api/*` endpoints require the `x-gpt-backend-secret` header.
