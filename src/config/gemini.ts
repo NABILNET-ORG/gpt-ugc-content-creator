@@ -3,7 +3,8 @@ import { env } from './env';
 import { logger } from './logger';
 
 // Use environment variable for model ID, with production-ready default
-const GEMINI_MODEL_ID = process.env.GEMINI_MODEL_ID?.trim() || 'gemini-1.5-pro';
+// gemini-2.0-flash-exp is the latest and fastest model
+const GEMINI_MODEL_ID = process.env.GEMINI_MODEL_ID?.trim() || 'gemini-2.0-flash-exp';
 
 // Validate Gemini API key on startup
 if (!env.GEMINI_API_KEY) {
