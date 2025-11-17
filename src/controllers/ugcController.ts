@@ -8,11 +8,11 @@ import { fetchPageWithScraperApi } from '../services/scraperApiService';
 import { analyzeHtmlWithGemini } from '../services/geminiScraperService';
 import { generateAvatar } from '../services/avatarService';
 import { generateScript } from '../services/scriptService';
-import { generateVideoFromAvatarAndScript } from '../services/videoService';
+import { generateVideoWithVeoAndSupabase } from '../services/videoService';
 import { getOrCreateUser } from '../services/userService';
 import { createProject, getProject, updateProjectAssets, updateProjectStatus } from '../services/projectService';
 import { getPaymentBySessionId } from '../services/paymentService';
-import { getVideoByProjectAndSession, createVideo, decrementUserCredits, getUserCredits } from '../db/queries';
+import { getVideoByProjectAndSession, createVideo, decrementUserCredits, getUserCredits, findUserByExternalId } from '../db/queries';
 import { AvatarSettings } from '../types';
 
 // POST /api/ugc/scrape-product
@@ -195,24 +195,40 @@ export async function generateVideoHandler(req: Request, res: Response): Promise
       throw new AppError(400, 'ASSETS_NOT_READY', 'Project assets are not ready. Call /prepare-assets first.');
     }
 
-    // Generate video
-    const videoResult = await generateVideoFromAvatarAndScript({
-      avatarImageUrls: [], // Avatar images would be stored in project or retrieved
-      scriptText: project.script_text,
-      durationSeconds: 8,
+    // Get user
+    const user = await findUserByExternalId(payment.user_id);
+    if (!user) {
+      throw new AppError(404, 'USER_NOT_FOUND', 'User not found');
+    }
+
+    // Use placeholder avatar image (will be replaced when avatar generation is implemented)
+    const avatarImageUrl = 'https://via.placeholder.com/512x512.png?text=Avatar';
+
+    logger.info(`[Generate Video] Starting real video generation for project ${projectId}`);
+
+    // Generate video with REAL Veo 3.1 + Supabase pipeline
+    const videoResult = await generateVideoWithVeoAndSupabase({
+      projectId,
+      userExternalId: user.external_id,
+      avatarImageUrl,
+      script: project.script_text,
+      aspectRatio: '9:16',
+      durationSeconds: 30,
     });
+
+    logger.info(`[Generate Video] Video generated and uploaded: ${videoResult.publicUrl}`);
 
     // Create video record
     await createVideo({
       projectId,
-      videoUrl: videoResult.videoUrl,
-      thumbnailUrl: videoResult.thumbnailUrl,
-      durationSeconds: videoResult.durationSeconds,
+      videoUrl: videoResult.publicUrl,
+      thumbnailUrl: undefined,
+      durationSeconds: 30,
       stripeSessionId,
     });
 
-    // Decrement user credits (optional - depends on credit model)
-    // await decrementUserCredits(payment.user_id, 1);
+    // Decrement user credits
+    await decrementUserCredits(payment.user_id, 1);
 
     // Update project status
     await updateProjectStatus(projectId, 'video_ready');
@@ -221,9 +237,9 @@ export async function generateVideoHandler(req: Request, res: Response): Promise
 
     sendSuccess(res, {
       projectId,
-      videoUrl: videoResult.videoUrl,
-      thumbnailUrl: videoResult.thumbnailUrl,
-      durationSeconds: videoResult.durationSeconds,
+      videoUrl: videoResult.publicUrl,
+      storagePath: videoResult.storagePath,
+      durationSeconds: 30,
       creditsRemaining,
     });
   } catch (error: any) {
