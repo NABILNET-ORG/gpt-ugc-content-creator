@@ -36,7 +36,14 @@ app.use((req, res, next) => {
 // ==================== ROUTES ====================
 
 // Public routes (no auth required)
-app.get('/health', healthRouter);
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    success: true,
+    status: 'healthy',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+  });
+});
 app.use('/privacy', privacyRouter);
 
 // Protected API routes (require auth)
