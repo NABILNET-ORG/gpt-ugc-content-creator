@@ -67,8 +67,8 @@ export async function analyzeHtmlWithGemini(
     // Prepare the prompt
     const userPrompt = `URL: ${url}\n\nHTML Content:\n${truncatedHtml}`;
 
-    // Get Gemini model
-    const model = getGeminiModel('gemini-1.5-flash');
+    // Get Gemini model (uses gemini-1.5-pro by default)
+    const model = getGeminiModel();
 
     logger.info(`[Gemini] Sending request to Gemini model...`);
 
