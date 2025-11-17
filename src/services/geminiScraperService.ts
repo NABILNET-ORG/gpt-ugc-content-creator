@@ -2,6 +2,7 @@ import { getGeminiModel } from '../config/gemini';
 import { logger } from '../config/logger';
 import { env } from '../config/env';
 import { AppError } from '../utils/error';
+import { extractProductImages } from './htmlImageExtractor';
 
 export interface GeminiScrapedProduct {
   url: string;
@@ -25,22 +26,14 @@ You MUST respond with a single JSON object, and nothing else, in the following e
 
 {
   "title": string | null,
-  "description": string | null,
-  "images": string[]
+  "description": string | null
 }
 
 Rules:
 - "title": the main product name if you can infer it. If you are not confident, use null.
-- "description": a short 1–3 sentence summary of the product (NOT the whole page). If you cannot infer it, use null.
-- "images": an array of absolute URLs of ALL distinct product images.
-  - Extract between 3 and 10 product image URLs if available.
-  - Include the main/hero image AND gallery images that show the product.
-  - Do NOT include: logos, brand icons, sprites, rating stars, badges, UI elements, favicons, placeholder images, tracking pixels.
-  - Do NOT include: very small images (thumbnails < 80px), social media icons, payment method logos.
-  - Prefer large, high-quality product photos that clearly show the product itself.
-  - Always return absolute URLs. If you see relative URLs, resolve them against the given page URL.
-  - Remove duplicate URLs.
-- Do not include any markdown, HTML, comments, or explanation. Only output the JSON object.`;
+- "description": a short 1–3 sentence marketing description of the product (NOT the whole page). If you cannot infer it, use null.
+- Do not include any markdown, HTML, comments, or explanation. Only output the JSON object.
+- Do NOT extract images - we handle that separately.`;
 
 /**
  * Analyze HTML content using Google Gemini to extract product information.
@@ -110,7 +103,7 @@ export async function analyzeHtmlWithGemini(
       throw new AppError(500, 'GEMINI_INVALID_RESPONSE', 'Gemini response is not a valid object');
     }
 
-    // Extract and normalize data
+    // Extract and normalize title and description
     const title = parsed.title && typeof parsed.title === 'string' && parsed.title.trim()
       ? parsed.title.trim()
       : null;
@@ -119,21 +112,18 @@ export async function analyzeHtmlWithGemini(
       ? parsed.description.trim()
       : null;
 
-    // Normalize images array
-    const rawImages = Array.isArray(parsed.images) ? parsed.images : [];
-    const images = rawImages
-      .filter((img: any) => typeof img === 'string' && img.trim())
-      .map((img: string) => img.trim())
-      .filter((img: string) => img.startsWith('http')) // Only absolute URLs
-      .filter((img: string, index: number, self: string[]) => self.indexOf(img) === index); // Remove duplicates
-
-    logger.info(`[Gemini] Extraction complete:`);
-    logger.info(`[Gemini]   - Images: ${images.length}`);
+    logger.info(`[Gemini] Text extraction complete:`);
     logger.info(`[Gemini]   - Title: ${title ? `"${title.substring(0, 50)}..."` : 'NULL'}`);
     logger.info(`[Gemini]   - Description: ${description ? `"${description.substring(0, 80)}..."` : 'NULL'}`);
 
+    // Extract images DIRECTLY from HTML (not from Gemini)
+    logger.info(`[Image Extraction] Extracting images from HTML (${html.length} chars)`);
+    const images = extractProductImages(html, url);
+
+    logger.info(`[Image Extraction] Final image count: ${images.length}`);
     if (images.length > 0) {
-      logger.info(`[Gemini]   - First image: ${images[0]}`);
+      logger.info(`[Image Extraction] First image: ${images[0]}`);
+      logger.info(`[Image Extraction] Sample images:`, images.slice(0, 3));
     }
 
     return {
@@ -141,7 +131,7 @@ export async function analyzeHtmlWithGemini(
       title,
       description,
       images,
-      raw: env.NODE_ENV === 'development' ? parsed : undefined,
+      raw: env.NODE_ENV === 'development' ? { ...parsed, extractedImages: images } : undefined,
     };
   } catch (error: any) {
     if (error instanceof AppError) {
