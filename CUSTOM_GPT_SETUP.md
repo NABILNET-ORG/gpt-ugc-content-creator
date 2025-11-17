@@ -4,7 +4,7 @@
 
 **Backend URL:** `https://gpt-ugc-content-creator.vercel.app`
 **Auth Header:** `x-gpt-backend-secret`
-**Auth Secret:** `7C5dJXv0rPpPp9sV_3qkL2wzA1mZBabA`
+**Auth Secret:** `<your-gpt-backend-secret>` (from your `.env` file)
 
 ## OpenAPI Schema for Custom GPT
 
@@ -355,7 +355,7 @@ curl https://gpt-ugc-content-creator.vercel.app/health
 ### 2. Test with Auth
 ```bash
 curl -X POST https://gpt-ugc-content-creator.vercel.app/api/ugc/scrape-product \
-  -H "x-gpt-backend-secret: 7C5dJXv0rPpPp9sV_3qkL2wzA1mZBabA" \
+  -H "x-gpt-backend-secret: <your-secret>" \
   -H "Content-Type: application/json" \
   -d '{"productUrl": "https://www.amazon.com/dp/B0EXAMPLE"}'
 ```
