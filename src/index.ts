@@ -9,6 +9,7 @@ import { sendError } from './utils/responses';
 
 // Import routes
 import healthRouter from './routes/health';
+import privacyRouter from './routes/privacy';
 import ugcRouter from './routes/ugc';
 import billingRouter from './routes/billing';
 import webhookRouter from './routes/webhook';
@@ -34,8 +35,9 @@ app.use((req, res, next) => {
 
 // ==================== ROUTES ====================
 
-// Health check (no auth required)
+// Public routes (no auth required)
 app.get('/health', healthRouter);
+app.use('/privacy', privacyRouter);
 
 // Protected API routes (require auth)
 app.use('/api/ugc', authMiddleware, ugcRouter);
