@@ -11,7 +11,7 @@ export interface GeminiScrapedProduct {
   raw?: any;
 }
 
-const MAX_HTML_LENGTH = 100000; // ~100k characters to stay within token limits
+const MAX_HTML_LENGTH = 250000; // ~250k characters for better coverage of large product pages
 
 const SYSTEM_PROMPT = `You are an intelligent HTML analyzer for e-commerce product pages.
 
@@ -32,10 +32,14 @@ You MUST respond with a single JSON object, and nothing else, in the following e
 Rules:
 - "title": the main product name if you can infer it. If you are not confident, use null.
 - "description": a short 1–3 sentence summary of the product (NOT the whole page). If you cannot infer it, use null.
-- "images": an array of absolute URLs of the most relevant product images.
-  - Do NOT include icons, logos, sprites, UI assets, or tracking pixels.
-  - Prefer main product photos, gallery/hero images, or clearly product-centric visuals.
+- "images": an array of absolute URLs of ALL distinct product images.
+  - Extract between 3 and 10 product image URLs if available.
+  - Include the main/hero image AND gallery images that show the product.
+  - Do NOT include: logos, brand icons, sprites, rating stars, badges, UI elements, favicons, placeholder images, tracking pixels.
+  - Do NOT include: very small images (thumbnails < 80px), social media icons, payment method logos.
+  - Prefer large, high-quality product photos that clearly show the product itself.
   - Always return absolute URLs. If you see relative URLs, resolve them against the given page URL.
+  - Remove duplicate URLs.
 - Do not include any markdown, HTML, comments, or explanation. Only output the JSON object.`;
 
 /**
