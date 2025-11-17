@@ -38,22 +38,22 @@ Your webhook endpoint is: `https://gpt-ugc-content-creator.vercel.app/webhook/st
 
 ## 3. Environment Variables
 
-Your environment variables are already configured in `.env`:
+Your environment variables should be configured in `.env` (see `.env.example`):
 
 ```env
 PORT=4000
 NODE_ENV=production
 
-STRIPE_SECRET_KEY=sk_test_51SUNc...
-STRIPE_WEBHOOK_SECRET=whsec_zOe...
+STRIPE_SECRET_KEY=<your-stripe-secret-key>
+STRIPE_WEBHOOK_SECRET=<your-stripe-webhook-secret>
 
-FIRECRAWL_API_KEY=fc-c3e2d...
-FAL_API_KEY=cd9d16df...
+FIRECRAWL_API_KEY=<your-firecrawl-api-key>
+FAL_API_KEY=<your-fal-api-key>
 
-SUPABASE_URL=https://cflcjeupixrimucbyhit.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=eyJhbG...
+SUPABASE_URL=<your-supabase-url>
+SUPABASE_SERVICE_ROLE_KEY=<your-supabase-service-role-key>
 
-GPT_BACKEND_SECRET=7C5dJXv0rPpPp9sV_3qkL2wzA1mZBabA
+GPT_BACKEND_SECRET=<your-gpt-backend-secret>
 
 ALLOWED_ORIGINS=https://chatgpt.com,https://chat.openai.com
 ```
@@ -224,7 +224,7 @@ Expected response:
 ### Test Authentication
 ```bash
 curl -X POST https://your-domain.com/api/ugc/scrape-product \
-  -H "x-gpt-backend-secret: 7C5dJXv0rPpPp9sV_3qkL2wzA1mZBabA" \
+  -H "x-gpt-backend-secret: <your-secret>" \
   -H "Content-Type: application/json" \
   -d '{"productUrl": "https://amazon.com/some-product"}'
 ```
@@ -247,7 +247,7 @@ Configure your Custom GPT to use these endpoints:
 **Authentication:**
 - Type: API Key
 - Header: `x-gpt-backend-secret`
-- Value: `7C5dJXv0rPpPp9sV_3qkL2wzA1mZBabA`
+- Value: `<your-gpt-backend-secret>` (from your `.env` file)
 
 **Actions:**
 1. `POST /api/ugc/scrape-product`
